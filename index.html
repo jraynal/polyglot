@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Polyglot — Travel Flashcards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #f5f0e8;
+  --card-front: #fffdf7;
+  --card-back: #1a1a2e;
+  --ink: #2c2c3a;
+  --ink-light: #6b6b7b;
+  --accent: #c0392b;
+  --accent-warm: #e67e22;
+  --fr: #1e3a5f;
+  --es: #8b1a1a;
+  --it: #1a6b3a;
+  --lat: #5b3a1a;
+  --shadow: 0 4px 24px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-hover: 0 8px 40px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08);
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-x: hidden;
+}
+
+/* Subtle paper texture */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+header {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 2.5rem 1rem 1rem;
+  width: 100%;
+  max-width: 640px;
+}
+
+header h1 {
+  font-family: 'Instrument Serif', serif;
+  font-size: clamp(2.2rem, 6vw, 3.2rem);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+header h1 em {
+  font-style: italic;
+  color: var(--accent);
+}
+
+header p {
+  margin-top: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--ink-light);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Stats bar */
+.stats {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  padding: 0.75rem 1rem;
+  font-size: 0.8rem;
+  color: var(--ink-light);
+  font-variant-numeric: tabular-nums;
+}
+
+.stats span { font-weight: 600; color: var(--ink); }
+
+/* Card container */
+.card-wrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 520px;
+  aspect-ratio: 4/3;
+  perspective: 1200px;
+  cursor: pointer;
+  padding: 0 1rem;
+  margin: 0.5rem 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.card {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.55s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.card.flipped { transform: rotateY(180deg); }
+
+.card-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  box-shadow: var(--shadow);
+  transition: box-shadow 0.3s;
+}
+
+.card-wrap:hover .card-face { box-shadow: var(--shadow-hover); }
+
+/* Front */
+.card-front {
+  background: var(--card-front);
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+.card-front::before {
+  content: '';
+  position: absolute;
+  top: 12px; left: 12px; right: 12px; bottom: 12px;
+  border: 1px solid rgba(0,0,0,0.04);
+  border-radius: 10px;
+  pointer-events: none;
+}
+
+.card-front .lang-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--ink-light);
+  margin-bottom: 0.5rem;
+}
+
+.card-front .word-en {
+  font-family: 'Instrument Serif', serif;
+  font-size: clamp(2rem, 7vw, 3rem);
+  text-align: center;
+  line-height: 1.2;
+  color: var(--ink);
+}
+
+.card-front .hint {
+  margin-top: 1rem;
+  font-size: 0.75rem;
+  color: var(--ink-light);
+  opacity: 0.6;
+}
+
+/* Back */
+.card-back {
+  background: var(--card-back);
+  transform: rotateY(180deg);
+  color: #e8e8f0;
+  gap: 0;
+  justify-content: center;
+  padding: 1.5rem 2rem;
+}
+
+.card-back::before {
+  content: '';
+  position: absolute;
+  top: 12px; left: 12px; right: 12px; bottom: 12px;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  pointer-events: none;
+}
+
+.translation-row {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.translation-row:last-child { border-bottom: none; }
+
+.flag-label {
+  width: 60px;
+  flex-shrink: 0;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  opacity: 0.5;
+}
+
+.flag-label.fr { color: #6ba3d6; }
+.flag-label.es { color: #e6a07a; }
+.flag-label.it { color: #7acc9a; }
+.flag-label.lat { color: #d4b896; }
+
+.translation-text {
+  font-family: 'Instrument Serif', serif;
+  font-size: clamp(1.3rem, 4vw, 1.7rem);
+  line-height: 1.3;
+  flex: 1;
+}
+
+.translation-text .article {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.7em;
+  opacity: 0.5;
+  margin-right: 0.2em;
+}
+
+.back-en-echo {
+  width: 100%;
+  text-align: center;
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.25);
+  margin-bottom: 0.75rem;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.05em;
+}
+
+/* Controls */
+.controls {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem 1.5rem;
+  width: 100%;
+  max-width: 520px;
+  justify-content: center;
+}
+
+.btn {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  padding: 0.7rem 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.02em;
+}
+
+.btn:active { transform: scale(0.96); }
+
+.btn-next {
+  background: var(--ink);
+  color: #fff;
+  flex: 1;
+  max-width: 200px;
+}
+
+.btn-next:hover { background: #3c3c4e; }
+
+.btn-shuffle {
+  background: transparent;
+  color: var(--ink-light);
+  border: 1.5px solid rgba(0,0,0,0.1);
+}
+
+.btn-shuffle:hover { border-color: rgba(0,0,0,0.25); color: var(--ink); }
+
+/* Category filter */
+.filter-bar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: center;
+  padding: 0 1rem 1rem;
+  max-width: 560px;
+}
+
+.filter-btn {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 0.3rem 0.7rem;
+  border-radius: 20px;
+  border: 1px solid rgba(0,0,0,0.08);
+  background: transparent;
+  color: var(--ink-light);
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.03em;
+}
+
+.filter-btn:hover { border-color: rgba(0,0,0,0.2); color: var(--ink); }
+.filter-btn.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+/* Progress */
+.progress-wrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 520px;
+  padding: 0 1rem;
+  margin-bottom: 1rem;
+}
+
+.progress-bar {
+  height: 3px;
+  background: rgba(0,0,0,0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+/* Keyboard hint */
+.keyboard-hints {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  padding: 0 1rem 2rem;
+  font-size: 0.7rem;
+  color: var(--ink-light);
+  opacity: 0.5;
+}
+
+.keyboard-hints kbd {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid rgba(0,0,0,0.15);
+  border-radius: 4px;
+  margin-right: 0.3rem;
+  background: rgba(255,255,255,0.5);
+}
+
+@media (max-width: 480px) {
+  .card-wrap { aspect-ratio: 3/3.2; }
+  .translation-row { padding: 0.5rem 0; }
+  .keyboard-hints { display: none; }
+  .card-back { padding: 1.2rem 1.5rem; }
+}
+
+/* Entrance animation */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.card-wrap { animation: fadeUp 0.5s ease both; }
+.controls { animation: fadeUp 0.5s ease 0.1s both; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Poly<em>glot</em></h1>
+  <p>1 000 travel words · 4 languages</p>
+</header>
+
+<div class="stats">
+  <div>Card <span id="cardNum">1</span> / <span id="totalCards">1000</span></div>
+  <div>Seen <span id="seenCount">0</span></div>
+</div>
+
+<div class="progress-wrap">
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+</div>
+
+<div class="card-wrap" id="cardWrap">
+  <div class="card" id="card">
+    <div class="card-face card-front">
+      <div class="lang-label">English</div>
+      <div class="word-en" id="wordEn">loading…</div>
+      <div class="hint">tap to flip</div>
+    </div>
+    <div class="card-face card-back">
+      <div class="back-en-echo" id="backEcho"></div>
+      <div class="translation-row">
+        <div class="flag-label fr">French</div>
+        <div class="translation-text" id="wordFr"></div>
+      </div>
+      <div class="translation-row">
+        <div class="flag-label es">Spanish</div>
+        <div class="translation-text" id="wordEs"></div>
+      </div>
+      <div class="translation-row">
+        <div class="flag-label it">Italian</div>
+        <div class="translation-text" id="wordIt"></div>
+      </div>
+      <div class="translation-row">
+        <div class="flag-label lat">Latin</div>
+        <div class="translation-text" id="wordLat"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="btn btn-shuffle" id="btnShuffle" title="Reshuffle deck">↻ Shuffle</button>
+  <button class="btn btn-next" id="btnNext">Next →</button>
+</div>
+
+<div class="keyboard-hints">
+  <div><kbd>Space</kbd> flip</div>
+  <div><kbd>→</kbd> next</div>
+  <div><kbd>S</kbd> shuffle</div>
+</div>
+
+<script>
+// Word data is loaded from words.json (same directory)
+// For GitHub Pages: just keep words.json alongside index.html
+let WORDS = [];
+let deck = [];
+let current = 0;
+let seen = new Set();
+
+async function loadWords() {
+  try {
+    const res = await fetch('words.json');
+    WORDS = await res.json();
+  } catch(e) {
+    // Fallback: try inline
+    console.error('Could not load words.json', e);
+    document.getElementById('wordEn').textContent = 'Error loading words.json';
+    return;
+  }
+  initDeck();
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function initDeck() {
+  deck = shuffle(WORDS.map((w, i) => i));
+  current = 0;
+  document.getElementById('totalCards').textContent = deck.length;
+  showCard();
+}
+
+function showCard() {
+  const idx = deck[current];
+  const w = WORDS[idx];
+  const card = document.getElementById('card');
+  card.classList.remove('flipped');
+
+  // Strip "the " prefix for display
+  const enDisplay = w.en.replace(/^the\s+/i, '');
+
+  document.getElementById('wordEn').textContent = enDisplay;
+  document.getElementById('backEcho').textContent = w.en;
+
+  document.getElementById('wordFr').innerHTML =
+    `<span class="article">${w.fr_art}</span> ${w.fr}`;
+  document.getElementById('wordEs').innerHTML =
+    `<span class="article">${w.es_art}</span> ${w.es}`;
+  document.getElementById('wordIt').innerHTML =
+    `<span class="article">${w.it_art}</span> ${w.it}`;
+  document.getElementById('wordLat').textContent = w.lat;
+
+  document.getElementById('cardNum').textContent = current + 1;
+
+  seen.add(idx);
+  document.getElementById('seenCount').textContent = seen.size;
+  document.getElementById('progressFill').style.width =
+    ((seen.size / WORDS.length) * 100) + '%';
+}
+
+function flipCard() {
+  document.getElementById('card').classList.toggle('flipped');
+}
+
+function nextCard() {
+  current = (current + 1) % deck.length;
+  showCard();
+}
+
+function reshuffleDeck() {
+  deck = shuffle(deck);
+  current = 0;
+  showCard();
+}
+
+// Events
+document.getElementById('cardWrap').addEventListener('click', flipCard);
+document.getElementById('btnNext').addEventListener('click', (e) => {
+  e.stopPropagation();
+  nextCard();
+});
+document.getElementById('btnShuffle').addEventListener('click', (e) => {
+  e.stopPropagation();
+  reshuffleDeck();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); flipCard(); }
+  if (e.key === 'ArrowRight' || e.key === 'Enter') { nextCard(); }
+  if (e.key === 'ArrowLeft') { current = Math.max(0, current - 2); nextCard(); }
+  if (e.key === 's' || e.key === 'S') { reshuffleDeck(); }
+});
+
+// Swipe support
+let touchStartX = 0;
+document.getElementById('cardWrap').addEventListener('touchstart', (e) => {
+  touchStartX = e.changedTouches[0].screenX;
+}, { passive: true });
+document.getElementById('cardWrap').addEventListener('touchend', (e) => {
+  const dx = e.changedTouches[0].screenX - touchStartX;
+  if (Math.abs(dx) > 60) {
+    if (dx < 0) nextCard();
+    else { current = Math.max(0, current - 2); nextCard(); }
+  }
+}, { passive: true });
+
+loadWords();
+</script>
+</body>
+</html>
