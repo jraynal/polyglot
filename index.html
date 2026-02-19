@@ -49,6 +49,12 @@ header p{margin-top:.3rem;font-size:.8rem;color:var(--ink-light);letter-spacing:
 .translation-text .art{font-family:'DM Sans',sans-serif;font-size:.7em;opacity:.45;margin-right:.15em}
 .adj-pair{display:flex;flex-direction:column;gap:.1rem}
 .adj-pair .gl{font-family:'JetBrains Mono',monospace;font-size:.5rem;opacity:.35;letter-spacing:.08em;margin-right:.3em}
+.speak-btn{flex-shrink:0;width:28px;height:28px;border:none;background:rgba(255,255,255,.08);border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-left:.5rem;transition:all .15s;color:rgba(255,255,255,.4);font-size:.75rem;line-height:1;padding:0}
+.speak-btn:hover{background:rgba(255,255,255,.15);color:rgba(255,255,255,.7)}
+.speak-btn:active{transform:scale(.9)}
+.speak-btn.speaking{background:rgba(255,255,255,.18);color:#7acc9a;animation:pulse .8s ease infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.translation-row{align-items:center}
 .controls{position:relative;z-index:1;display:flex;gap:.6rem;padding:.5rem 1rem 1rem;width:100%;max-width:520px;justify-content:center}
 .btn{font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;border:none;border-radius:10px;padding:.6rem 1.3rem;cursor:pointer;transition:all .2s;letter-spacing:.02em}
 .btn:active{transform:scale(.96)}
@@ -102,10 +108,29 @@ function show(){
   seen.add(deck[cur]);document.getElementById('seenCount').textContent=seen.size;
   document.getElementById('progressFill').style.width=(seen.size/W.length*100)+'%';
 }
-function row(lang,cls,html){return`<div class="translation-row"><div class="flag-label ${cls}">${lang}</div><div class="translation-text">${html}</div></div>`}
-function nB(w){return row('French','fr',`<span class="art">${w.fr_art}</span> ${w.fr}`)+row('Spanish','es',`<span class="art">${w.es_art}</span> ${w.es}`)+row('Italian','it',`<span class="art">${w.it_art}</span> ${w.it}`)+row('Latin','lat',w.lat)}
-function aB(w){return row('French','fr',`<div class="adj-pair"><div><span class="gl">M</span>${w.fr_m}</div><div><span class="gl">F</span>${w.fr_f}</div></div>`)+row('Spanish','es',`<div class="adj-pair"><div><span class="gl">M</span>${w.es_m}</div><div><span class="gl">F</span>${w.es_f}</div></div>`)+row('Italian','it',`<div class="adj-pair"><div><span class="gl">M</span>${w.it_m}</div><div><span class="gl">F</span>${w.it_f}</div></div>`)+row('Root','lat',w.lat)}
-function pB(w){return row('French','fr',w.fr)+row('Spanish','es',w.es)+row('Italian','it',w.it)+row('Latin','lat',w.lat)}
+function row(lang,cls,html,speakText,speakLang){const sb=speakLang?`<button class="speak-btn" onclick="event.stopPropagation();speak(this,'${speakText.replace(/'/g,"\\'")}','${speakLang}')" title="Listen">🔊</button>`:'';return`<div class="translation-row"><div class="flag-label ${cls}">${lang}</div><div class="translation-text">${html}</div>${sb}</div>`}
+function nB(w){return row('French','fr',`<span class="art">${w.fr_art}</span> ${w.fr}`,w.fr_art+' '+w.fr,'fr-FR')+row('Spanish','es',`<span class="art">${w.es_art}</span> ${w.es}`,w.es_art+' '+w.es,'es-ES')+row('Italian','it',`<span class="art">${w.it_art}</span> ${w.it}`,w.it_art+' '+w.it,'it-IT')+row('Latin','lat',w.lat)}
+function aB(w){return row('French','fr',`<div class="adj-pair"><div><span class="gl">M</span>${w.fr_m}</div><div><span class="gl">F</span>${w.fr_f}</div></div>`,w.fr_m,'fr-FR')+row('Spanish','es',`<div class="adj-pair"><div><span class="gl">M</span>${w.es_m}</div><div><span class="gl">F</span>${w.es_f}</div></div>`,w.es_m,'es-ES')+row('Italian','it',`<div class="adj-pair"><div><span class="gl">M</span>${w.it_m}</div><div><span class="gl">F</span>${w.it_f}</div></div>`,w.it_m,'it-IT')+row('Root','lat',w.lat)}
+function pB(w){return row('French','fr',w.fr,w.fr,'fr-FR')+row('Spanish','es',w.es,w.es,'es-ES')+row('Italian','it',w.it,w.it,'it-IT')+row('Latin','lat',w.lat)}
+function speak(btn,text,lang){
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);u.lang=lang;u.rate=0.85;
+  // Try to find a good voice for this language
+  const voices=speechSynthesis.getVoices();
+  const match=voices.filter(v=>v.lang.startsWith(lang.split('-')[0]));
+  if(match.length>0){
+    // Prefer voices with "Google" or "Enhanced" or non-compact names
+    const good=match.find(v=>v.name.includes('Google')||v.name.includes('Enhanced'))||match[0];
+    u.voice=good;
+  }
+  btn.classList.add('speaking');
+  u.onend=()=>btn.classList.remove('speaking');
+  u.onerror=()=>btn.classList.remove('speaking');
+  speechSynthesis.speak(u);
+}
+// Preload voices (Chrome loads them async)
+speechSynthesis.getVoices();
+if(speechSynthesis.onvoiceschanged!==undefined)speechSynthesis.onvoiceschanged=()=>speechSynthesis.getVoices();
 function flip(){document.getElementById('card').classList.toggle('flipped')}
 function next(){if(!deck.length)return;cur=(cur+1)%deck.length;show()}
 function prev(){if(!deck.length)return;cur=(cur-1+deck.length)%deck.length;show()}
