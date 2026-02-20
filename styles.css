@@ -766,3 +766,20 @@ body.blind-mode .front-hint {
 .search-panel .suggestions-panel{
   background:rgba(255,255,255,.85);
 }
+
+/* Version footer */
+.version {
+  position: relative;
+  z-index: 1;
+  font-size: 0.65rem;
+  color: var(--ink-light);
+  opacity: 0.35;
+  padding: 0.5rem 1rem 1.5rem;
+  text-align: center;
+}
+
+.version a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

@@ -10,6 +10,8 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#2c2c3a" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link
@@ -89,6 +91,16 @@
 
   <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
   <script src="app.js" defer></script>
+
+  <!-- Service Worker registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .catch(err => console.warn('SW registration failed:', err));
+      });
+    }
+  </script>
 
   <div class="search-overlay" id="searchOverlay" hidden aria-hidden="true">
     <div class="search-panel" id="searchPanel" role="dialog" aria-modal="true" aria-label="Search">
