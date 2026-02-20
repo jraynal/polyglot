@@ -6,9 +6,6 @@ const App = (() => {
     seen: new Set(),
     filter: "all",
 
-    // Applies ONLY to adjectives (type === "adj")
-    adjGender: "both", // "both" | "m" | "f"
-
     // Search (all languages). Search activates at 3+ characters.
     searchQuery: "",
     fuse: null
@@ -22,12 +19,10 @@ const App = (() => {
       "backEcho", "backContent",
       "cardNum", "totalCards", "seenCount", "progressFill",
       "btnNext", "btnPrev", "btnShuffle",
-      "genderBar",
       "searchInput", "searchClear"
     ].forEach(id => dom[id] = document.getElementById(id));
 
     dom.filterButtons = document.querySelectorAll(".filter-btn");
-    dom.genderButtons = document.querySelectorAll(".gender-btn");
   }
 
   function norm(s) {
@@ -248,9 +243,6 @@ const App = (() => {
     dom.seenCount.textContent = state.seen.size;
     dom.progressFill.style.width =
       (state.seen.size / state.words.length) * 100 + "%";
-
-    // Only show adjective gender bar when relevant
-    dom.genderBar.style.display = (word.type === "adj") ? "flex" : "none";
   }
 
   function renderFront(word) {
@@ -310,48 +302,38 @@ const App = (() => {
   }
 
   function buildAdjective(w) {
-    // Display controlled by state.adjGender, but only affects adjective type.
-    const g = state.adjGender;
-
-    if (g === "m") {
-      return [
-        translationRow("French", "fr", w.fr_m ?? "", w.fr_m ?? "", "fr-FR"),
-        translationRow("Spanish", "es", w.es_m ?? "", w.es_m ?? "", "es-ES"),
-        translationRow("Italian", "it", w.it_m ?? "", w.it_m ?? "", "it-IT"),
-        translationRow("Root", "lat", `${w.lat ?? ""}`, "", "")
-      ].join("");
-    }
-
-    if (g === "f") {
-      return [
-        translationRow("French", "fr", w.fr_f ?? "", w.fr_f ?? "", "fr-FR"),
-        translationRow("Spanish", "es", w.es_f ?? "", w.es_f ?? "", "es-ES"),
-        translationRow("Italian", "it", w.it_f ?? "", w.it_f ?? "", "it-IT"),
-        translationRow("Root", "lat", `${w.lat ?? ""}`, "", "")
-      ].join("");
-    }
-
-    // both (default): show stacked M/F + two speak buttons
-    function adjPair(m, f) {
-      return `
-        <div class="adj-pair">
-          <div><span class="gl">M</span>${m ?? ""}</div>
-          <div><span class="gl">F</span>${f ?? ""}</div>
-        </div>
-      `;
-    }
-
-    function twoSpeakButtons(m, f, lang) {
-      const bm = `<button class="speak-btn" data-text="${escapeAttr(m ?? "")}" data-lang="${escapeAttr(lang)}" title="Listen (M)">🔊</button>`;
-      const bf = `<button class="speak-btn" data-text="${escapeAttr(f ?? "")}" data-lang="${escapeAttr(lang)}" title="Listen (F)">🔊</button>`;
-      return bm + bf;
-    }
-
     return [
-      translationRow("French", "fr", adjPair(w.fr_m, w.fr_f), "", "", twoSpeakButtons(w.fr_m, w.fr_f, "fr-FR")),
-      translationRow("Spanish", "es", adjPair(w.es_m, w.es_f), "", "", twoSpeakButtons(w.es_m, w.es_f, "es-ES")),
-      translationRow("Italian", "it", adjPair(w.it_m, w.it_f), "", "", twoSpeakButtons(w.it_m, w.it_f, "it-IT")),
-      translationRow("Root", "lat", `${w.lat ?? ""}`, "", "")
+      translationRow(
+        "French",
+        "fr",
+        `<div class="adj-pair">
+         <div><span class="gl">M</span>${w.fr_m}</div>
+         <div><span class="gl">F</span>${w.fr_f}</div>
+       </div>`,
+        w.fr_m,
+        "fr-FR"
+      ),
+      translationRow(
+        "Spanish",
+        "es",
+        `<div class="adj-pair">
+         <div><span class="gl">M</span>${w.es_m}</div>
+         <div><span class="gl">F</span>${w.es_f}</div>
+       </div>`,
+        w.es_m,
+        "es-ES"
+      ),
+      translationRow(
+        "Italian",
+        "it",
+        `<div class="adj-pair">
+         <div><span class="gl">M</span>${w.it_m}</div>
+         <div><span class="gl">F</span>${w.it_f}</div>
+       </div>`,
+        w.it_m,
+        "it-IT"
+      ),
+      translationRow("Root", "lat", w.lat)
     ].join("");
   }
 
@@ -385,15 +367,6 @@ const App = (() => {
         btn.classList.add("active");
         state.filter = btn.dataset.type;
         initializeDeck();
-      });
-    });
-
-    dom.genderButtons.forEach(btn => {
-      btn.addEventListener("click", () => {
-        dom.genderButtons.forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
-        state.adjGender = btn.dataset.gender;
-        render();
       });
     });
 
