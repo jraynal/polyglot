@@ -366,15 +366,17 @@ const App = (() => {
         ? (word.en || "").replace(/^the\s+/i, "")
         : (word.en || "");
     }
+    if (word.type === "adj") {
+      const lastWord = s => s.trim().split(/\s+/).pop() ?? s;
+      const m = lastWord(word[`${lang}_m`] ?? "");
+      const f = lastWord(word[`${lang}_f`] ?? "");
+      if (m && f && m !== f) return `${m} / ${f}`;
+      return m || f || word[lang] || "";
+    }
     if (word.type === "noun") {
       const art = word[`${lang}_art`] ?? "";
       const w   = word[lang] ?? "";
       return art ? `${art} ${w}` : w;
-    }
-    if (word.type === "adj") {
-      const m = word[`${lang}_m`] ?? "";
-      const f = word[`${lang}_f`] ?? "";
-      return m && f ? `${m} / ${f}` : (m || f || word[lang] || "");
     }
     return word[lang] ?? "";
   }
