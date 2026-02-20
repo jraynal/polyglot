@@ -5,6 +5,7 @@ const App = (() => {
     currentIndex: 0,
     seen: new Set(),
     filter: "all",
+    frontLang: "en",
 
     // Search (all languages). Search activates at 3+ characters.
     searchQuery: "",
@@ -24,6 +25,7 @@ const App = (() => {
     ].forEach(id => dom[id] = document.getElementById(id));
 
     dom.filterButtons = document.querySelectorAll(".filter-btn");
+    dom.langButtons = document.querySelectorAll(".lang-btn");
   }
 
   function norm(s) {
@@ -357,18 +359,39 @@ const App = (() => {
       (state.seen.size / state.words.length) * 100 + "%";
   }
 
+  // Returns the display text for a word in a given language for the card front.
+  function getFrontText(word, lang) {
+    if (lang === "en") {
+      return word.type === "noun"
+        ? (word.en || "").replace(/^the\s+/i, "")
+        : (word.en || "");
+    }
+    if (word.type === "noun") {
+      const art = word[`${lang}_art`] ?? "";
+      const w   = word[lang] ?? "";
+      return art ? `${art} ${w}` : w;
+    }
+    if (word.type === "adj") {
+      const m = word[`${lang}_m`] ?? "";
+      const f = word[`${lang}_f`] ?? "";
+      return m && f ? `${m} / ${f}` : (m || f || word[lang] || "");
+    }
+    return word[lang] ?? "";
+  }
+
+  // Returns the echo label shown faintly at the top of the back face.
+  function getEchoText(word, lang) {
+    return getFrontText(word, lang);
+  }
+
   function renderFront(word) {
     dom.typeBadge.textContent = word.type;
     dom.typeBadge.className = `type-badge ${word.type}`;
-
-    dom.frontWord.textContent =
-      word.type === "noun"
-        ? (word.en || "").replace(/^the\s+/i, "")
-        : (word.en || "");
+    dom.frontWord.textContent = getFrontText(word, state.frontLang);
   }
 
   function renderBack(word) {
-    dom.backEcho.textContent = word.en || "";
+    dom.backEcho.textContent = getEchoText(word, state.frontLang);
     dom.backContent.innerHTML = buildBack(word);
   }
 
@@ -404,22 +427,51 @@ const App = (() => {
       .replace(/>/g, "&gt;");
   }
 
+  // Language config: all non-Latin languages available on the back.
+  const LANGS = [
+    { key: "en",  label: "English", cls: "en",  speakLang: "en-GB",
+      noun: w => ({ html: w.en ?? "", speak: w.en ?? "" }),
+      adj:  w => ({ html: w.en ?? "", speak: w.en ?? "" }),
+      phrase: w => ({ html: w.en ?? "", speak: w.en ?? "" }) },
+    { key: "fr",  label: "French",  cls: "fr",  speakLang: "fr-FR",
+      noun: w => ({ html: `<span class="art">${w.fr_art ?? ""}</span> ${w.fr ?? ""}`, speak: `${w.fr_art ?? ""} ${w.fr ?? ""}`.trim() }),
+      adj:  w => null, // uses adjRow
+      phrase: w => ({ html: w.fr ?? "", speak: w.fr ?? "" }) },
+    { key: "es",  label: "Spanish", cls: "es",  speakLang: "es-ES",
+      noun: w => ({ html: `<span class="art">${w.es_art ?? ""}</span> ${w.es ?? ""}`, speak: `${w.es_art ?? ""} ${w.es ?? ""}`.trim() }),
+      adj:  w => null,
+      phrase: w => ({ html: w.es ?? "", speak: w.es ?? "" }) },
+    { key: "it",  label: "Italian", cls: "it",  speakLang: "it-IT",
+      noun: w => ({ html: `<span class="art">${w.it_art ?? ""}</span> ${w.it ?? ""}`, speak: `${w.it_art ?? ""} ${w.it ?? ""}`.trim() }),
+      adj:  w => null,
+      phrase: w => ({ html: w.it ?? "", speak: w.it ?? "" }) },
+  ];
+
+  const ADJ_KEYS = { fr: ["fr_m","fr_f"], es: ["es_m","es_f"], it: ["it_m","it_f"] };
+
   function buildNoun(w) {
-    return [
-      translationRow("French", "fr", `<span class="art">${w.fr_art ?? ""}</span> ${w.fr ?? ""}`, `${w.fr_art ?? ""} ${w.fr ?? ""}`.trim(), "fr-FR"),
-      translationRow("Spanish", "es", `<span class="art">${w.es_art ?? ""}</span> ${w.es ?? ""}`, `${w.es_art ?? ""} ${w.es ?? ""}`.trim(), "es-ES"),
-      translationRow("Italian", "it", `<span class="art">${w.it_art ?? ""}</span> ${w.it ?? ""}`, `${w.it_art ?? ""} ${w.it ?? ""}`.trim(), "it-IT"),
-      translationRow("Latin", "lat", `${w.lat ?? ""}`, "", "")
-    ].join("");
+    return LANGS
+      .filter(l => l.key !== state.frontLang)
+      .map(l => {
+        const { html, speak } = l.noun(w);
+        return translationRow(l.label, l.cls, html, speak, l.speakLang);
+      })
+      .concat(translationRow("Latin", "lat", w.lat ?? "", "", ""))
+      .join("");
   }
 
   function buildAdjective(w) {
-    return [
-      adjRow("French", "fr", w.fr_m, w.fr_f, "fr-FR"),
-      adjRow("Spanish", "es", w.es_m, w.es_f, "es-ES"),
-      adjRow("Italian", "it", w.it_m, w.it_f, "it-IT"),
-      translationRow("Root", "lat", w.lat)
-    ].join("");
+    return LANGS
+      .filter(l => l.key !== state.frontLang)
+      .map(l => {
+        if (l.key === "en") {
+          return translationRow(l.label, l.cls, w.en ?? "", w.en ?? "", l.speakLang);
+        }
+        const [mk, fk] = ADJ_KEYS[l.key];
+        return adjRow(l.label, l.cls, w[mk], w[fk], l.speakLang);
+      })
+      .concat(translationRow("Root", "lat", w.lat ?? ""))
+      .join("");
   }
 
   function adjRow(label, cls, masc, fem, lang) {
@@ -446,12 +498,14 @@ const App = (() => {
   `;
   }
   function buildPhrase(w) {
-    return [
-      translationRow("French", "fr", `${w.fr ?? ""}`, `${w.fr ?? ""}`, "fr-FR"),
-      translationRow("Spanish", "es", `${w.es ?? ""}`, `${w.es ?? ""}`, "es-ES"),
-      translationRow("Italian", "it", `${w.it ?? ""}`, `${w.it ?? ""}`, "it-IT"),
-      translationRow("Latin", "lat", `${w.lat ?? ""}`, "", "")
-    ].join("");
+    return LANGS
+      .filter(l => l.key !== state.frontLang)
+      .map(l => {
+        const { html, speak } = l.phrase(w);
+        return translationRow(l.label, l.cls, html, speak, l.speakLang);
+      })
+      .concat(translationRow("Latin", "lat", w.lat ?? "", "", ""))
+      .join("");
   }
 
   let cachedVoices = [];
@@ -499,6 +553,15 @@ const App = (() => {
     });
 
     dom.searchPanel?.addEventListener("click", (e) => e.stopPropagation());
+
+    dom.langButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        dom.langButtons.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        state.frontLang = btn.dataset.lang;
+        render();
+      });
+    });
 
     dom.filterButtons.forEach(btn => {
       btn.addEventListener("click", () => {
