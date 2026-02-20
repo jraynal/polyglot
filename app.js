@@ -6,6 +6,7 @@ const App = (() => {
     seen: new Set(),
     filter: "all",
     frontLang: "en",
+    blindMode: false,
 
     // Search (all languages). Search activates at 3+ characters.
     searchQuery: "",
@@ -26,6 +27,9 @@ const App = (() => {
 
     dom.filterButtons = document.querySelectorAll(".filter-btn");
     dom.langButtons = document.querySelectorAll(".lang-btn");
+    dom.btnBlind = document.getElementById("btnBlind");
+    dom.blindSpeakBtn = document.getElementById("blindSpeakBtn");
+    dom.frontHint = document.getElementById("frontHint");
   }
 
   function norm(s) {
@@ -351,6 +355,8 @@ const App = (() => {
     renderFront(word);
     renderBack(word);
 
+    if (state.blindMode) speakFront();
+
     dom.cardNum.textContent = state.currentIndex + 1;
 
     state.seen.add(state.deck[state.currentIndex]);
@@ -511,6 +517,41 @@ const App = (() => {
   speechSynthesis.addEventListener("voiceschanged", loadVoices);
   loadVoices();
 
+  // Returns the {text, lang} needed to speak the front of the current card.
+  function getFrontSpeakData(word) {
+    const lang = state.frontLang;
+    const SPEAK_LANG = { en: "en-GB", fr: "fr-FR", es: "es-ES", it: "it-IT" };
+    const speakLang = SPEAK_LANG[lang] ?? "en-GB";
+    let text = "";
+    if (lang === "en") {
+      text = word.en ?? "";
+    } else if (word.type === "noun") {
+      text = (`${word[`${lang}_art`] ?? ""} ${word[lang] ?? ""}`).trim();
+    } else if (word.type === "adj") {
+      // Speak the masculine form for brevity
+      text = word[`${lang}_adj_m`] ?? word[lang] ?? "";
+    } else {
+      text = word[lang] ?? "";
+    }
+    return { text, lang: speakLang };
+  }
+
+  function toggleBlindMode() {
+    state.blindMode = !state.blindMode;
+    document.body.classList.toggle("blind-mode", state.blindMode);
+    dom.btnBlind.classList.toggle("active", state.blindMode);
+    dom.blindSpeakBtn.hidden = !state.blindMode;
+    // Auto-speak when entering blind mode
+    if (state.blindMode) speakFront();
+  }
+
+  function speakFront() {
+    const word = state.words[state.deck[state.currentIndex]];
+    if (!word) return;
+    const { text, lang } = getFrontSpeakData(word);
+    if (text) speak(text, lang);
+  }
+
   function speak(text, lang) {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
@@ -536,6 +577,8 @@ const App = (() => {
     dom.btnNext.addEventListener("click", (e) => { e.stopPropagation(); next(); });
     dom.btnPrev.addEventListener("click", (e) => { e.stopPropagation(); prev(); });
     dom.btnShuffle.addEventListener("click", (e) => { e.stopPropagation(); reshuffle(); });
+    dom.btnBlind?.addEventListener("click", (e) => { e.stopPropagation(); toggleBlindMode(); });
+    dom.blindSpeakBtn?.addEventListener("click", (e) => { e.stopPropagation(); speakFront(); });
 
     dom.btnSearch?.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -646,6 +689,7 @@ const App = (() => {
       if (e.key === "ArrowRight" || e.key === "Enter") next();
       if (e.key === "ArrowLeft") prev();
       if (e.key === "s" || e.key === "S") reshuffle();
+      if (e.key === "b" || e.key === "B") toggleBlindMode();
     });
 
     // Touch swipe navigation

@@ -294,6 +294,50 @@ header p {
   opacity: 0.5;
 }
 
+/* Blind mode */
+.blind-speak-btn {
+  display: none; /* shown via JS when blind mode is active */
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: none;
+  background: var(--ink);
+  color: #fff;
+  font-size: 2rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  align-items: center;
+  justify-content: center;
+  margin: 0.5rem 0;
+}
+
+.blind-speak-btn:hover {
+  background: #3c3c4e;
+  transform: scale(1.06);
+}
+
+.blind-speak-btn:active {
+  transform: scale(0.94);
+}
+
+body.blind-mode .front-word {
+  visibility: hidden;
+}
+
+body.blind-mode .blind-speak-btn {
+  display: flex;
+}
+
+body.blind-mode .front-hint {
+  opacity: 0;
+}
+
+.btn-blind.active {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+}
+
 /* Back */
 .card-back {
   background: var(--card-back);
