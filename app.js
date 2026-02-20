@@ -467,9 +467,12 @@ const App = (() => {
     u.lang = lang;
     u.rate = 0.85;
     const voices = cachedVoices.length ? cachedVoices : speechSynthesis.getVoices();
-    const exactMatch = voices.find(v => v.lang === lang);
-    const langMatch = voices.find(v => v.lang.startsWith(lang.split("-")[0]));
-    const voice = exactMatch || langMatch;
+    const base = lang.split("-")[0];
+    const voice =
+      voices.find(v => v.lang === lang && v.default) ||
+      voices.find(v => v.lang === lang) ||
+      voices.find(v => v.lang.startsWith(base) && v.default) ||
+      voices.find(v => v.lang.startsWith(base));
     if (voice) u.voice = voice;
     speechSynthesis.speak(u);
   }
