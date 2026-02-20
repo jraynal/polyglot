@@ -1,12 +1,35 @@
 const App = (() => {
+  // ── Persistence helpers ──────────────────────────────────────────────────
+  const STORAGE_KEY = "polyglot_prefs_v1";
+
+  function loadPrefs() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch { return {}; }
+  }
+
+  function savePrefs() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        frontLang: state.frontLang,
+        filter:    state.filter,
+        blindMode: state.blindMode
+      }));
+    } catch { /* storage full / private mode – silently ignore */ }
+  }
+
+  // Read persisted values before the state object is built.
+  const _prefs = loadPrefs();
+
   const state = {
     words: [],
     deck: [],
     currentIndex: 0,
     seen: new Set(),
-    filter: "all",
-    frontLang: "en",
-    blindMode: false,
+    filter:    _prefs.filter    ?? "all",
+    frontLang: _prefs.frontLang ?? "en",
+    blindMode: _prefs.blindMode ?? false,
 
     // Search (all languages). Search activates at 3+ characters.
     searchQuery: "",
@@ -541,6 +564,7 @@ const App = (() => {
     document.body.classList.toggle("blind-mode", state.blindMode);
     dom.btnBlind.classList.toggle("active", state.blindMode);
     dom.blindSpeakBtn.hidden = !state.blindMode;
+    savePrefs();
     // Auto-speak when entering blind mode
     if (state.blindMode) speakFront();
   }
@@ -598,6 +622,7 @@ const App = (() => {
         dom.langButtons.forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
         state.frontLang = btn.dataset.lang;
+        savePrefs();
         render();
       });
     });
@@ -607,6 +632,7 @@ const App = (() => {
         dom.filterButtons.forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
         state.filter = btn.dataset.type;
+        savePrefs();
         // Rebuild deck, but try to keep the current word visible if it still exists in the filtered deck.
         const currentWordIdx = state.deck[state.currentIndex];
         const indices = state.words.map((_, i) => i).filter(i => state.filter === "all" || state.words[i]?.type === state.filter);
@@ -726,8 +752,29 @@ const App = (() => {
     if (state.deck.length) render();
   }
 
+  // Apply persisted preferences to the UI (called once, before loadWords renders).
+  function restorePrefs() {
+    // Lang bar
+    dom.langButtons.forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.lang === state.frontLang);
+    });
+
+    // Filter bar
+    dom.filterButtons.forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.type === state.filter);
+    });
+
+    // Blind mode
+    if (state.blindMode) {
+      document.body.classList.add("blind-mode");
+      dom.btnBlind?.classList.add("active");
+      if (dom.blindSpeakBtn) dom.blindSpeakBtn.hidden = false;
+    }
+  }
+
   function init() {
     cacheDom();
+    restorePrefs();
     bindEvents();
     loadWords();
   }
