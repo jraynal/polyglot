@@ -303,40 +303,36 @@ const App = (() => {
 
   function buildAdjective(w) {
     return [
-      translationRow(
-        "French",
-        "fr",
-        `<div class="adj-pair">
-         <div><span class="gl">M</span>${w.fr_m}</div>
-         <div><span class="gl">F</span>${w.fr_f}</div>
-       </div>`,
-        w.fr_m,
-        "fr-FR"
-      ),
-      translationRow(
-        "Spanish",
-        "es",
-        `<div class="adj-pair">
-         <div><span class="gl">M</span>${w.es_m}</div>
-         <div><span class="gl">F</span>${w.es_f}</div>
-       </div>`,
-        w.es_m,
-        "es-ES"
-      ),
-      translationRow(
-        "Italian",
-        "it",
-        `<div class="adj-pair">
-         <div><span class="gl">M</span>${w.it_m}</div>
-         <div><span class="gl">F</span>${w.it_f}</div>
-       </div>`,
-        w.it_m,
-        "it-IT"
-      ),
+      adjRow("French", "fr", w.fr_m, w.fr_f, "fr-FR"),
+      adjRow("Spanish", "es", w.es_m, w.es_f, "es-ES"),
+      adjRow("Italian", "it", w.it_m, w.it_f, "it-IT"),
       translationRow("Root", "lat", w.lat)
     ].join("");
   }
 
+  function adjRow(label, cls, masc, fem, lang) {
+    return `
+    <div class="translation-row">
+      <div class="flag-label ${cls}">${label}</div>
+      <div class="translation-text adj-forms">
+        <div class="adj-line">
+          <span class="gl">M</span>
+          <span>${masc}</span>
+          <button class="speak-btn"
+                  data-text="${masc}"
+                  data-lang="${lang}">🔊</button>
+        </div>
+        <div class="adj-line">
+          <span class="gl">F</span>
+          <span>${fem}</span>
+          <button class="speak-btn"
+                  data-text="${fem}"
+                  data-lang="${lang}">🔊</button>
+        </div>
+      </div>
+    </div>
+  `;
+  }
   function buildPhrase(w) {
     return [
       translationRow("French", "fr", `${w.fr ?? ""}`, `${w.fr ?? ""}`, "fr-FR"),

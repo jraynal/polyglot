@@ -45,7 +45,6 @@ body::before {
 header,
 .stats,
 .filter-bar,
-.gender-bar,
 .progress-wrap,
 .card-wrap,
 .controls,
@@ -126,46 +125,6 @@ header p {
 }
 
 .filter-btn.active {
-  background: var(--ink);
-  color: #fff;
-  border-color: var(--ink);
-}
-
-/* Adjective gender control */
-.gender-bar {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  justify-content: center;
-  padding: 0 1rem 0.5rem;
-}
-
-.gender-label {
-  font-size: 0.7rem;
-  color: var(--ink-light);
-  letter-spacing: 0.03em;
-}
-
-.gender-btn {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 0.7rem;
-  font-weight: 500;
-  padding: 0.25rem 0.65rem;
-  border-radius: 20px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  background: transparent;
-  color: var(--ink-light);
-  cursor: pointer;
-  transition: all 0.15s;
-  letter-spacing: 0.03em;
-}
-
-.gender-btn:hover {
-  border-color: rgba(0, 0, 0, 0.2);
-  color: var(--ink);
-}
-
-.gender-btn.active {
   background: var(--ink);
   color: #fff;
   border-color: var(--ink);
@@ -398,6 +357,31 @@ header p {
   opacity: 0.35;
   letter-spacing: 0.08em;
   margin-right: 0.3em;
+}
+
+.adj-forms {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  width: 100%;
+}
+
+.adj-line {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+.adj-line .gl {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .6rem;
+  opacity: .4;
+  width: 14px;
+  flex-shrink: 0;
+}
+
+.adj-line .speak-btn {
+  margin-left: auto;
 }
 
 /* Speak buttons */
