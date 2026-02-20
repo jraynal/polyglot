@@ -76,7 +76,7 @@ const App = (() => {
 
   async function loadWords() {
     try {
-      const res = await fetch("words.json");
+      const res = await fetch("words.json?v=2");
       const raw = await res.json();
 
       state.words = raw.map((w, i) => ({
