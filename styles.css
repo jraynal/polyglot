@@ -623,3 +623,7 @@ header p {
   margin-left:auto;
   white-space:nowrap;
 }
+
+/* Search widget container (hidden by default) */
+.search-widget{width:100%}
+.search-widget[hidden]{display:none}

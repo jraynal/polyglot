@@ -8,6 +8,7 @@ const App = (() => {
 
     // Search (all languages). Search activates at 3+ characters.
     searchQuery: "",
+    searchOpen: false,
     fuse: null
   };
 
@@ -18,8 +19,8 @@ const App = (() => {
       "card", "cardWrap", "typeBadge", "frontWord",
       "backEcho", "backContent",
       "cardNum", "totalCards", "seenCount", "progressFill",
-      "btnNext", "btnPrev", "btnShuffle",
-      "searchInput", "searchClear", "searchSuggestions"
+      "btnNext", "btnPrev", "btnSearch", "btnShuffle",
+      "searchWidget", "searchInput", "searchClear", "searchSuggestions"
     ].forEach(id => dom[id] = document.getElementById(id));
 
     dom.filterButtons = document.querySelectorAll(".filter-btn");
@@ -281,11 +282,28 @@ const App = (() => {
     dom.searchSuggestions.hidden = false;
   }
 
-  function jumpToIndex(idx) {
-    const pos = state.deck.indexOf(idx);
-    state.currentIndex = pos === -1 ? 0 : pos;
-    if (pos === -1) state.deck = [idx];
-    render();
+
+  function openSearch() {
+    state.searchOpen = true;
+    if (dom.searchWidget) dom.searchWidget.hidden = false;
+    // Show suggestions for current query (if any)
+    initializeDeck(); // keeps deck consistent with query/type
+    dom.searchInput?.focus();
+  }
+
+  function closeSearch() {
+    state.searchOpen = false;
+    if (dom.searchWidget) dom.searchWidget.hidden = true;
+    // hide suggestions panel; keep query text untouched
+    if (dom.searchSuggestions) {
+      dom.searchSuggestions.hidden = true;
+      dom.searchSuggestions.innerHTML = "";
+    }
+    dom.searchInput?.blur();
+  }
+
+  function toggleSearch() {
+    state.searchOpen ? closeSearch() : openSearch();
   }
 
 function render() {
@@ -411,11 +429,31 @@ function render() {
   }
 
   function bindEvents() {
-    dom.cardWrap.addEventListener("click", () => dom.card.classList.toggle("flipped"));
+    dom.cardWrap.addEventListener("click", () => {
+      if (state.searchOpen) return;
+      dom.card.classList.toggle("flipped");
+    });
 
     dom.btnNext.addEventListener("click", (e) => { e.stopPropagation(); next(); });
     dom.btnPrev.addEventListener("click", (e) => { e.stopPropagation(); prev(); });
     dom.btnShuffle.addEventListener("click", (e) => { e.stopPropagation(); reshuffle(); });
+
+    dom.btnSearch?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleSearch();
+    });
+
+    // Close search when clicking outside the widget
+    document.addEventListener("click", (e) => {
+      if (!state.searchOpen) return;
+      const t = e.target;
+      if (dom.searchWidget && dom.searchWidget.contains(t)) return;
+      if (dom.btnSearch && dom.btnSearch.contains(t)) return;
+      closeSearch();
+    });
+
+    // Prevent clicks inside the search widget from bubbling to card handlers
+    dom.searchWidget?.addEventListener("click", (e) => e.stopPropagation());
 
     dom.filterButtons.forEach(btn => {
       btn.addEventListener("click", () => {
@@ -431,7 +469,13 @@ function render() {
       initializeDeck();
     });
 
-    dom.searchInput?.addEventListener("keydown", (e) => { e.stopPropagation(); });
+    dom.searchInput?.addEventListener("keydown", (e) => {
+      e.stopPropagation();
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeSearch();
+      }
+    });
 
     dom.searchClear?.addEventListener("click", () => {
       dom.searchInput.value = "";
@@ -471,12 +515,16 @@ function render() {
     // Touch swipe navigation
     let tx = 0;
     dom.cardWrap.addEventListener("touchstart", (e) => {
+      if (state.searchOpen) return;
       tx = e.changedTouches[0].screenX;
     }, { passive: true });
 
     dom.cardWrap.addEventListener("touchend", (e) => {
+      if (state.searchOpen) return;
       const d = e.changedTouches[0].screenX - tx;
-      if (Math.abs(d) > 60) d < 0 ? next() : prev();
+      if (Math.abs(d) > 60) {
+        d < 0 ? next() : prev();
+      }
     }, { passive: true });
   }
 
